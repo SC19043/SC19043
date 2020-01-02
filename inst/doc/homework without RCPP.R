@@ -1,0 +1,735 @@
+## ----setup, include=FALSE------------------------------------------------
+knitr::opts_chunk$set(echo = TRUE)
+
+
+## ----echo=FALSE----------------------------------------------------------
+library("knitr")
+library("bootstrap")
+
+
+## ---- echo=TRUE----------------------------------------------------------
+scor
+
+
+## ----echo=TRUE-----------------------------------------------------------
+curve(x^3,-5,5,xlab="x",ylab="y")
+abline(v=0,h=0,lty=2)
+
+
+## ----echo=TRUE-----------------------------------------------------------
+plot(presidents)
+
+
+## ----echo=TRUE-----------------------------------------------------------
+kable(scor[(1:15),])
+
+
+## ------------------------------------------------------------------------
+Rayleigh <- function(n, sigma){
+  u<-runif(n)
+  x<-sqrt(-2*sigma^2*log(1-u))
+  hist(x,probability = TRUE)
+  y=seq(0,4000,.0005)
+  lines(y,y*exp(-y^2/(2*sigma^2))/sigma^2)
+}
+
+
+## ------------------------------------------------------------------------
+Rayleigh(10000,1)
+
+
+## ------------------------------------------------------------------------
+Rayleigh(100000,0.1)
+
+
+## ------------------------------------------------------------------------
+Rayleigh(1000,10)
+
+
+## ------------------------------------------------------------------------
+Rayleigh(1000,1000)
+
+
+## ------------------------------------------------------------------------
+mix<-function(n,p){
+  x1<-rnorm(n,0,1)
+  x2<-rnorm(n,3,1)
+  r<-rbinom(n,1,prob=p)
+  z<-r*x1+(1-r)*x2
+  hist(z,probability = TRUE,main = p)
+  z<-seq(-4,7,.05)
+  lines(z,p*dnorm(z,0,1)+(1-p)*dnorm(z,3,1))
+}
+
+
+## ------------------------------------------------------------------------
+mix(1000,0.75)
+
+
+## ------------------------------------------------------------------------
+p0<-seq(0,1,0.05)
+for (i in p0){
+  mix(1000,i)
+}
+
+
+
+## ------------------------------------------------------------------------
+library(MASS)
+wdsample<-function(Sigma,n,d){
+  T <- matrix(0, nrow = d, ncol = d)    #define a d*d matrix
+  for(i in (1:d)){
+    T[i,i]=sqrt(rchisq(1,n-i+1))
+    for(j in (1:i-1)){
+      T[i,j]=rnorm(1,0,1)
+    }
+  }
+  L=chol(Sigma)
+  A=T%*%t(T)
+  L%*%A%*%t(L)
+}
+
+
+## ------------------------------------------------------------------------
+Sigma <- matrix(nr=3,nc=3) 
+Sigma[1,]<-c(3,1,0)
+Sigma[2,]<-c(1,4,0)
+Sigma[3,]<-c(0,0,5)
+wdsample(Sigma,6,3)
+
+
+## ------------------------------------------------------------------------
+theta<-integrate(sin,0,pi/3)$value
+theta
+
+
+## ------------------------------------------------------------------------
+set.seed(0)
+m<-10000;x<-runif(m,min=0,max=pi/3)
+theta.hat<-mean(sin(x)*pi/3)
+print(theta.hat)
+
+
+## ------------------------------------------------------------------------
+set.seed(1)
+MC.Phi<-function(R,antithetic = TRUE){
+  u <- runif(R/2,0,1)
+  if (!antithetic) v <- runif(R/2,0,1) else v <- 1 - u
+  u <- c(u, v)
+  g <-exp(-u)/(u^2+1)
+  mean(g)
+}
+m <- 1000
+MC1 <- MC2 <- numeric(m)
+for (i in 1:m) {
+  MC1[i] <- MC.Phi(m, antithetic = FALSE)
+  MC2[i] <- MC.Phi(m)
+}
+var(MC1)
+var(MC2)
+(var(MC1)-var(MC2))/var(MC1)
+
+
+## ------------------------------------------------------------------------
+set.seed(4)
+M<-10000;k<-5
+r<-M/k  #replicates per stratum
+N<-50  #number of times to repeat the estimation
+T2<-numeric(k)
+est<-matrix(0,N,2)
+g<-function(x){exp(-x)/(1+x^2)*(x>0)*(x<1)}
+for (i in 1:N){
+  u<- runif(M)  #inverse transform method
+  x<- -log(1-u*(1-exp(-1)))
+  fg<-g(x)*(1-exp(-1))/exp(-x)
+  est[i,1]<-mean(fg)
+  for (t in 1:k){
+    v<- runif(r)  #inverse transform method
+    y<- -log(exp(-(t-1)/5)-v*(exp(-(t-1)/5)-exp(-t/5)))
+    fg0<- g(y)*(exp(-(t-1)/5)-exp(-t/5))/exp(-y)
+    T2[t]<-mean(5*fg0)
+  }
+  est[i,2]<-mean(T2)
+}
+apply(est,2,mean)
+apply(est,2,sd)
+
+
+## ------------------------------------------------------------------------
+set.seed(123)
+m <- 1000
+n <- 20
+alpha <- 0.05
+UCL <- LCL <- numeric(m)
+for (i in 1:m){
+  x <- rchisq(n, df=2)
+  x_bar <- mean(x)
+  S <- sqrt(var(x))
+  UCL[i] <- x_bar-S*qt(alpha/2,df=n-1)/sqrt(n)
+  LCL[i] <- x_bar+S*qt(alpha/2,df=n-1)/sqrt(n)
+} 
+sum(LCL<2 & 2<UCL)    #the real mean is 2
+mean(LCL<2 & 2<UCL)   #compare the real value with t-interval
+
+
+## ------------------------------------------------------------------------
+set.seed(123)
+n<-20
+alpha<-0.05
+UCL1<-replicate(1000,expr = {
+  x<-rchisq(n,df=2)
+  (n-1)*var(x)/qchisq(alpha,df=n-1)
+  })
+sum(UCL1>4)
+mean(UCL1>4)
+
+
+## ------------------------------------------------------------------------
+set.seed(1)
+n <- 1000   #sample size
+m <- 1000
+sk <- function(x){
+  #compute the sample skewness coeff
+  xbar <- mean(x)
+  m3 <- mean((x-xbar)^3)
+  m2 <- mean((x-xbar)^2)
+  return(m3/m2^1.5)
+}
+skew <- numeric(m)
+for (i in 1:m){
+  x <- rnorm(n)
+  skew[i] <- sk(x)
+}
+C <- c(0.025, 0.05, 0.95,0.975)
+est<-quantile(skew,probs = C)    #estimates of skewness
+qnorm<-qnorm(c(0.025, 0.05, 0.95,0.975),mean=0,sd=sqrt(6/n))   #quantile of N(0,6/n)
+sd<-C*(1-C)/(n*dnorm(C))
+#standard of estimates from (2.14) using the normal approximation for the density 
+knitr::kable(rbind(est,qnorm,sd),col.names = c('0.025','0.05','0.95','0.975'))
+
+
+## ------------------------------------------------------------------------
+alpha<-.1
+n<-30
+m<-2500
+epsilon<-c(seq(0,.15,.01),seq(.15,1,.05))
+N<-length(epsilon)
+pwr<-pwr2<-numeric(N)
+cv<-qnorm(1-alpha/2,0,sqrt(6*(n-2)/((n+1)*(n+3))))
+sk <- function(x){
+  #compute the sample skewness coeff
+  xbar <- mean(x)
+  m3 <- mean((x-xbar)^3)
+  m2 <- mean((x-xbar)^2)
+  return(m3/m2^1.5)
+}
+set.seed(123)
+for (j in 1:N) {
+  e<-epsilon[j]
+  sktests<-sktests2<-numeric(m)
+  for (i in 1:m){
+    a<-sample(c(1,100),replace = TRUE, size = n, prob = c(1-e,e))
+    x<-rbeta(n,a,a)
+    y<-rt(n,a)
+    sktests[i]<-as.integer(abs(sk(x))>=cv)
+    sktests2[i]<-as.integer(abs(sk(y))>=cv)
+  }
+  pwr[j]<-mean(sktests)
+  pwr2[j]<-mean(sktests2)
+}
+plot(epsilon,pwr,xlab = bquote(epsilon),ylab="power of beta",type = "b",ylim=c(0,1))
+abline(h=.1,lty=3)
+se<-sqrt(pwr*(1-pwr)/m)
+lines(epsilon,pwr+se,lty=3)
+lines(epsilon,pwr-se,lty=3)
+plot(epsilon,pwr2,xlab = bquote(epsilon),ylab="power of t",type = "b",ylim = c(0,1))
+abline(h=.1,lty=3)
+se2<-sqrt(pwr2*(1-pwr2)/m)
+lines(epsilon,pwr2+se2,lty=3)
+lines(epsilon,pwr2-se2,lty=3)
+
+
+## ------------------------------------------------------------------------
+set.seed(3)
+n<-20
+alpha<-0.05
+m<-10000
+mu0<-1
+p.chi<-p.unif<-p.exp<-numeric(m)
+for (j in 1:m) {
+  x<-rchisq(n,1)
+  y<-runif(n,0,2)
+  z<-rexp(n,1)
+  testx<-t.test(x,mu=mu0)
+  testy<-t.test(y,mu=mu0)
+  testz<-t.test(z,mu=mu0)
+  p.chi[j]<-testx$p.value
+  p.unif[j]<-testy$p.value
+  p.exp[j]<-testz$p.value
+}
+p.hat.chi<-mean(p.chi<alpha)
+se.chi<-sqrt(p.hat.chi*(1-p.hat.chi)/m)
+p.hat.unif<-mean(p.unif<alpha)
+se.unif<-sqrt(p.hat.unif*(1-p.hat.unif)/m)
+p.hat.exp<-mean(p.exp<alpha)
+se.exp<-sqrt(p.hat.exp*(1-p.hat.exp)/m)
+print(c(p.hat.chi,se.chi))
+print(c(p.hat.unif,se.unif))
+print(c(p.hat.exp,se.exp))
+
+
+## ------------------------------------------------------------------------
+set.seed(123)
+library(bootstrap)
+B<-200        #number of replicates
+n<-nrow(scor)
+R<-matrix(0,B,4)
+rho<-matrix(0,4,2)
+rownames(rho)<-c("rho12","rho34","rho35","rho45")
+colnames(rho)<-c("est","est.sd")
+##par(mfrow = c(2, 2))
+plot(scor$mec,scor$vec,xlab = "mec",ylab = "vec",cex=0.6)
+plot(scor$alg,scor$ana,xlab = "alg",ylab = "ana",cex=0.6)
+plot(scor$alg,scor$sta,xlab = "alg",ylab = "sta",cex=0.6)
+plot(scor$ana,scor$sta,xlab = "ana",ylab = "sta",cex=0.6)
+print(cor(scor))
+for (b in 1:B) {
+  i<-sample(1:n, size = n, replace = TRUE)
+  mec<-scor$mec[i]
+  vec<-scor$vec[i]
+  alg<-scor$alg[i]
+  ana<-scor$ana[i]
+  sta<-scor$sta[i]
+  R[b,1]<-cor(mec,vec)
+  R[b,2]<-cor(alg,ana)
+  R[b,3]<-cor(alg,sta)
+  R[b,4]<-cor(ana,sta)
+}
+for (i in 1:4){
+  rho[i,]<-c(mean(R[,i]),sd(R[,i]))
+}
+print(rho)
+
+
+## ------------------------------------------------------------------------
+set.seed(0)
+library(boot)
+n<-100
+m<-1000  
+sk.chi5<-4/sqrt(10)
+ci.normal<-ci.chisq<-matrix(0,m,6)
+norm.miss<-chi.miss<-matrix(0,3,3)
+rownames(norm.miss)<-rownames(chi.miss)<-c("normal CI","basic CI","percentile CI")
+colnames(norm.miss)<-colnames(chi.miss)<-c("coverage rate","miss on the left","miss on the right")
+sk <- function(x,i){
+  #compute the sample skewness coeff
+  xbar <- mean(x[i])
+  m3 <- mean((x[i]-xbar)^3)
+  m2 <- mean((x[i]-xbar)^2)
+  return(m3/m2^1.5)
+}
+for (k in 1:m) {
+  x<-rnorm(n)
+  y<-rchisq(n,5)
+  boot.obj.norm<-boot(x,R=2000,statistic = function(x,i){sk(x,i)})
+  boot.obj.chi<-boot(y,R=2000,statistic = function(y,i){sk(y,i)})
+  ci.norm<-boot.ci(boot.obj.norm,type = c("norm","basic","perc"))
+  ci.chi<-boot.ci(boot.obj.chi,type = c("norm","basic","perc"))
+  ci.normal[k,]<-c(ci.norm$normal[2],ci.norm$normal[3],ci.norm$basic[4],ci.norm$basic[5],ci.norm$percent[4],ci.norm$percent[5])
+  ci.chisq[k,]<-c(ci.chi$normal[2],ci.chi$normal[3],ci.chi$basic[4],ci.chi$basic[5],ci.chi$percent[4],ci.chi$percent[5])
+}
+for (j in 1:3) {
+  norm.miss[j,]<-c(mean(0>ci.normal[,2*j-1] & 0<ci.normal[,2*j]) ,mean(0<ci.normal[,2*j-1]),mean(0>ci.normal[,2*j]))
+  chi.miss[j,]<-c(mean(sk.chi5>ci.chisq[,2*j-1] & sk.chi5<ci.chisq[,2*j]) ,mean(sk.chi5<ci.chisq[,2*j-1]),mean(sk.chi5>ci.chisq[,2*j]))
+}
+knitr::kable(norm.miss, caption = "N(0,1)")
+knitr::kable(chi.miss, caption = "chisq (5)")
+
+
+## ------------------------------------------------------------------------
+library(bootstrap)
+r<-function(x){
+# compute theta given in the question from a sample
+  cov<-cov(x)
+  eigenvalues<-eigen(cov)$values
+  theta<-eigenvalues[1]/sum(eigenvalues)
+  return(theta)
+}
+theta.hat<-r(scor)
+n<-nrow(scor)
+theta.jack<-numeric(n)
+for (i in 1:n) {
+  theta.jack[i]<-r(scor[-i,])
+}
+bias<-(n-1)*(mean(theta.jack)-theta.hat)
+se<-sqrt((n-1)*mean((theta.jack-mean(theta.jack))^2))
+print(c(theta.hat,bias,se))
+
+
+## ------------------------------------------------------------------------
+library(DAAG)
+attach(ironslag)
+m<-length(magnetic)
+e1<-e2<-e3<-e4<-numeric(m)
+Rsquare<-numeric(4)
+for (k in 1:m) {
+  y<-magnetic[-k]
+  x<-chemical[-k]
+  
+  J1<-lm(y~x)
+  yhat1<-J1$coef[1]+J1$coef[2]*chemical[k]
+  e1[k]<-magnetic[k]-yhat1
+  
+  J2<-lm(y~x+I(x^2))
+  yhat2<-J2$coef[1]+J2$coef[2]*chemical[k]+J2$coef[3]*chemical[k]^2
+  e2[k]<-magnetic[k]-yhat2
+  
+  J3<-lm(log(y)~x)
+  logyhat3<-J3$coef[1]+J3$coef[2]*chemical[k]
+  yhat3<-exp(logyhat3)
+  e3[k]<-magnetic[k]-yhat3
+  
+  J4<-lm(y~x+I(x^2)+I(x^3))
+  yhat4<-J4$coef[1]+J4$coef[2]*chemical[k]++J4$coef[3]*chemical[k]^2++J4$coef[4]*chemical[k]^3
+  e4[k]<-magnetic[k]-yhat4
+}
+c(mean(e1^2),mean(e2^2),mean(e3^2),mean(e4^2))
+
+L1<-lm(magnetic~chemical)
+Rsquare[1]<-summary(L1)$r.squared
+
+L2<-lm(magnetic~chemical+I(chemical^2))
+Rsquare[2]<-summary(L2)$r.squared
+
+L3<-lm(log(magnetic)~chemical)
+Rsquare[3]<-summary(L3)$r.squared
+
+L4<-lm(magnetic~chemical++I(chemical^2)++I(chemical^3))
+Rsquare[4]<-summary(L4)$r.squared
+
+Rsquare
+
+
+## ------------------------------------------------------------------------
+set.seed(0)
+maxout<-function(x,y){
+  X<-x-mean(x)
+  Y<-y-mean(y)
+  outx<-sum(X>max(Y))+sum(X<min(Y))
+  outy<-sum(Y>max(X))+sum(Y<min(X))
+  return(max(c(outx,outy)))
+}
+n1<-15
+n2<-20
+mu1<-mu2<-0
+sigma1<-1
+sigma2<-1
+m<-1000
+stat<-replicate(m,expr = {
+  x<-rnorm(n1,mu1,sigma1)
+  y<-rnorm(n2,mu2,sigma2)
+  maxout(x,y)
+})
+print(cumsum(table(stat))/m)
+print(quantile(stat,.95))
+
+
+## ------------------------------------------------------------------------
+library(boot)
+set.seed(3)
+count5test<-function(z,ix,size){
+  n1<-size[1]
+  n2<-size[2]
+  n<-n1+n2
+  if(is.vector(z)) z<-data.frame(z,0); z<-z[ix,];
+  X<-z[1:n1,1]
+  Y<-z[(n1+1):n,1]
+  X<-X-mean(X)
+  Y<-Y-mean(Y)
+  outx<-sum(X>max(Y))+sum(X<min(Y))
+  outy<-sum(Y>max(X))+sum(Y<min(X))
+  return(max(c(outx,outy)))
+}
+mu1<-mu2<-0
+# if not, we can let x<-x-mean(x)
+sigma1<-2
+sigma2<-2.5
+n1<-15
+n2<-25
+x<-rnorm(n1,mu1,sigma1)
+y<-rnorm(n2,mu2,sigma2)
+z<-c(x,y)
+N<-c(n1,n2)
+boot.obj<-boot(z,statistic = count5test,sim="permutation",R=999,size=N)
+tb<-c(boot.obj$t0,boot.obj$t)
+mean(tb>=tb[1])
+
+
+## ------------------------------------------------------------------------
+library(boot)
+library(MASS)
+library(Ball)
+set.seed(0)
+dCov<-function(x,y){
+  x<-as.matrix(x)
+  y<-as.matrix(y)
+  n<-nrow(x)
+  m<-nrow(y)
+  if (n!=m || n<2) stop("Sample sizes must agree")
+  if (!(all(is.finite(c(x,y)))))
+    stop("Data contains missing or infinite values")
+  Akl<-function(x){
+    d<-as.matrix(dist(x))
+    m<-rowMeans(d)
+    M<-mean(d)
+    a<-sweep(d,1,m)
+    b<-sweep(a,2,m)
+    b + M
+  }
+  A<-Akl(x);B<-Akl(y)
+  sqrt(mean(A*B))
+}
+ndCov2<-function(z,ix,dims){
+  p<-dims[1]
+  q<-dims[2]
+  d<-p+q
+  x<-z[,1:p]
+  y<-z[ix,-(1:p)]
+  return(nrow(z)*dCov(x,y)^2)
+}
+mu<-c(0,0)
+sigma<-diag(1,2)
+m<-100
+pow<-function(n,type){
+  p.values<-matrix(0,m,2)
+  for (i in 1:m) {
+    X<-mvrnorm(n,mu,sigma)
+    e<-mvrnorm(n,mu,sigma)
+    if(type==1) Y<-X/4+e
+    if(type==2) Y<-X/4*e
+    z<-cbind(X,Y)
+    boot.obj<-boot(data = z, statistic = ndCov2,R=99,sim = "permutation",dims=c(2,2))
+    tb<-c(boot.obj$t0,boot.obj$t)
+    p.values[i,1]<-mean(tb>=tb[1])
+    p.values[i,2]<-bcov.test(X,Y,R=99,seed = i)$p.value
+  }
+  alpha<-0.05
+  pow0<-colMeans(p.values<alpha)
+  return(pow0)
+}
+N<-c(5,10,20,30,50,90)
+power1<-power2<-matrix(0,6,2)
+for (i in 1:6) {
+  power1[i,]<-pow(N[i],1)
+  power2[i,]<-pow(N[i],2)
+}
+plot(N,power1[,1],type = "l",col = 1,lty=1,ylab = "power",ylim = c(0,1),main = "Y=X/4+e")
+lines(N,power1[,2],col = 2,lty=2)
+legend("bottomright",legend=c("Distance correlation","Ball covariance"),col=c(1,2),lty=c(1,2))  
+plot(N,power2[,1],type = "l",col = 1,lty=1,ylab = "power",ylim = c(0,1),main = "Y=X/4*e")
+lines(N,power2[,2],col = 2,lty=2)
+legend("bottomright",legend=c("Distance correlation","Ball covariance"),col=c(1,2),lty=c(1,2))  
+
+
+## ------------------------------------------------------------------------
+library(GeneralizedHyperbolic)
+set.seed(1)
+f<-function(x) 0.5*exp(-abs(x))
+rw.Metropolos<-function(sigma,x0,N){
+  x<-numeric(N)
+  x[1]<-x0
+  u<-runif(N)
+  k<-0
+  for (i in 2:N) {
+    y<-rnorm(1,x[i-1],sigma)
+    if (u[i]<=f(y)/f(x[i-1]))
+      x[i]<-y 
+    else {
+      x[i]<-x[i-1]
+      k<-k+1
+    }
+  }
+  return(list(x=x,k=k))
+}
+N<-2000
+sigma<-c(.05,.5,2,16)
+x0<-25
+rw1<-rw.Metropolos(sigma[1],x0,N)
+rw2<-rw.Metropolos(sigma[2],x0,N)
+rw3<-rw.Metropolos(sigma[3],x0,N)
+rw4<-rw.Metropolos(sigma[4],x0,N)
+refline <- qskewlap(c(.025, .975))
+##par(mfrow = c(2, 2))
+plot(1:2000,rw1$x,type = "l",xlab = paste("sigma=",sigma[2]),ylab = "x")
+abline(h=refline)
+plot(1:2000,rw2$x,type = "l",xlab = paste("sigma=",sigma[2]),ylab = "x")
+abline(h=refline)
+plot(1:2000,rw3$x,type = "l",xlab = paste("sigma=",sigma[3]),ylab = "x")
+abline(h=refline)
+plot(1:2000,rw4$x,type = "l",xlab = paste("sigma=",sigma[4]),ylab = "x")
+abline(h=refline)
+#acceptance rate
+print(c(1-rw1$k/N,1-rw2$k/N,1-rw3$k/N,1-rw4$k/N))
+
+
+## ------------------------------------------------------------------------
+LL<-function (theta,theta0){
+  p<-theta[1]
+  p0<-theta0[1]
+  q<-theta[2]
+  q0<-theta0[2]
+  r<- 1-p-q
+  r0<- 1-p0-q0
+  l<- 2*41*log(r)+70*log(2*p*q)+2*28*log(p)+2*24*log(q)+2*r0/(p0+2*r0)*log(2*r/p)+2*r0/(q0+2*r0)*log(2*r/q)
+  return(-l)
+}
+theta0<-c(.2,.5)
+n<-100
+h<-numeric(n)
+try(
+  for (i in 1:n) {
+  theta<-optim(theta0,LL,theta0=theta0)$par
+  h[i]<-LL(theta,theta0)
+  theta0<-theta
+})
+cat ("p=",theta[1],"\n")
+cat ("q=",theta[2],"\n")
+h[1:10]
+
+
+## ------------------------------------------------------------------------
+set.seed(0)
+n<-1000
+x<-rchisq(n,2)
+mean(log(exp(x))==exp(log(x))&log(exp(x))==x)
+k<-numeric(n)
+for (i in 1:n) {
+  k[i]=isTRUE(all.equal(log(exp(x[i])),exp(log(x[i])))) & isTRUE(all.equal(log(exp(x[i])),x[i]))
+}
+mean(k)
+
+
+## ------------------------------------------------------------------------
+k<-c(4:25,100,500,1000)
+root<-numeric(length(k))
+f<-function(a,k){
+  pt(sqrt(a^2*(k-1)/(k-a^2)),df=k-1)-pt(sqrt(a^2*(k)/(k+1-a^2)),df=k)
+}
+for (i in 1:length(k)) 
+  root[i]<-uniroot(f,interval = c(0.1,sqrt(k[i]-0.1)),k=k[i])$root
+root
+
+
+## ------------------------------------------------------------------------
+c<-function(k,a){
+  sqrt(a^2*k/(k+1-a^2))
+}
+g<-function(x,m){
+  2*gamma((m+1)/2)/(sqrt(pi*m)*gamma(m/2))*(1+x^2/m)^(-(m+1)/2)
+}
+h<-function(a,k){
+  integrate(g,lower = 0,upper = sqrt(a^2*k/(k+1-a^2)),m=k)$value-integrate(g,lower = 0,upper = sqrt(a^2*(k-1)/(k-a^2)),m=k-1)$value
+}
+root1<-numeric(19)
+for (j in 1:19) {
+  l<-k[j]
+  root1[j]<-uniroot(h,lower = 0.1,upper = sqrt(l)-0.1,k=l)$root
+}
+root1
+##comparison
+delta<-a0<-numeric(19)
+for (i in 1:19) {
+  delta[i]<-root[i]-root1[i]
+  a0[i]<-isTRUE(all.equal(root[i],root1[i]))
+}
+## the differences between root and root1
+delta
+## whether the root and equals root1 with near equality  
+mean(a0)
+
+
+## ------------------------------------------------------------------------
+LL<-function (theta,theta0){
+  p<-theta[1]
+  p0<-theta0[1]
+  q<-theta[2]
+  q0<-theta0[2]
+  r<- 1-p-q
+  r0<- 1-p0-q0
+  l<- 2*41*log(r)+70*log(2*p*q)+2*28*log(p)+2*24*log(q)+2*r0/(p0+2*r0)*log(2*r/p)+2*r0/(q0+2*r0)*log(2*r/q)
+  return(-l)
+}
+theta0<-c(.2,.5)
+n<-100
+h<-numeric(n)
+try(
+  for (i in 1:n) {
+  theta<-optim(theta0,LL,theta0=theta0)$par
+  h[i]<-LL(theta,theta0)
+  theta0<-theta
+})
+cat ("p=",theta[1],"\n")
+cat ("q=",theta[2],"\n")
+h[1:10]
+
+
+## ------------------------------------------------------------------------
+formulas <-list(
+mpg ~ disp,
+mpg ~I(1/ disp),
+mpg ~ disp + wt,
+mpg ~I(1/ disp) + wt
+)
+#lapply
+lapply(seq_along(formulas),function(i){lm(formula = formulas[[i]],data = mtcars)})
+#for loop
+out1<-list()
+for (i in seq_along(formulas)) {
+  out1[[i]]<-lm(formula = formulas[[i]],data = mtcars)
+}
+out1
+
+
+## ------------------------------------------------------------------------
+set.seed(123)
+bootstraps <-lapply(1:10, function(i) {
+rows <-sample(1:nrow(mtcars),rep =TRUE)
+mtcars[rows, ]
+})
+#fit<-function(dat){lm(formula = mpg ~ disp,data = dat)}
+#lapply
+lapply(bootstraps, lm,formula = mpg ~ disp)
+#for loop
+out2<-vector("list", length(bootstraps))
+for (i in seq_along(bootstraps)) {
+  out2[[i]]<-lm(formula = mpg ~ disp,data = bootstraps[[i]])
+}
+out2
+
+
+## ------------------------------------------------------------------------
+rsq <- function(mod)summary(mod)$r.squared
+lapply(out1, rsq)
+lapply(out2, rsq)
+
+
+## ------------------------------------------------------------------------
+set.seed(123)
+trials <-replicate(
+100,
+t.test(rpois(10,10),rpois(7,10)),
+simplify = FALSE
+)
+sapply(trials, function(obj){obj$p.value})
+sapply(trials,"[[",3)
+
+
+## ------------------------------------------------------------------------
+library(parallel)
+no_cores <- detectCores() - 1
+cl <- makeCluster(no_cores)
+func<-function(x){return(x+1)}
+system.time(sapply(1: 5000000, func))
+system.time(parSapply(cl,1: 5000000, func))
+stopCluster(cl)
+
