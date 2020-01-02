@@ -3,20 +3,20 @@
 \alias{SC19043}
 \docType{package}
 \title{
-  A short title line describing what the package does
+  A R package made by SC19043
 }
 \description{
-  A more detailed description of what the package does. A length
-  of about one to five lines is recommended.
+  The function _akde_ is used to solve the adaptive kernel density estimator problem.
+  The function _est.knn_ is  to estimator density with k-Nearest Neighbor method.
 }
 \details{
   This section should provide a more detailed overview of how to use the
   package, including the most important functions.
 }
 \author{
-Your Name, email optional.
+Renhao Zou
 
-Maintainer: Your Name <your@email.com>
+Maintainer: SC19043 <1144573191@qq.com>
 }
 \references{
   This optional section can contain literature or other references for
