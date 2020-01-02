@@ -2,18 +2,17 @@ Package: SC19043
 Type: Package
 Title: A R package made by SC19043
 Version: 1.0
-Date: 2019-12-31
-Author: Renhao Zou
+Date: 2020-01-02
+Author:  Renhao Zou
 Maintainer: SC19043 <1144573191@qq.com>
 Description: The function _akde_ is used to solve the adaptive kernel density estimator problem.
-The function _est.knn_ is  to estimator density with k-Nearest Neighbor method.
+             The function _est.knn_ is  to estimator density with k-Nearest Neighbor method.
 License: GPL (>= 2)
-Encoding: UTF-8
-Depends: R (>= 3.5.0)
-Imports: Rcpp (>= 1.0.3),xtable,DAAG
+Imports: Rcpp (>= 1.0.3)
 LinkingTo: Rcpp
 RoxygenNote: 7.0.2
 Suggests: knitr, rmarkdown
 VignetteBuilder: knitr
+Encoding: UTF-8
 URL:http://github.com/SC19043/SC19043
 BugReports:http://github.com/SC19043/SC19043/issues

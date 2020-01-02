@@ -3,18 +3,25 @@
 \alias{SC19043}
 \docType{package}
 \title{
-  Adaptive KDE and KNN density estimator
+  A short title line describing what the package does
 }
 \description{
-  Two functions to get density estimator
+  A more detailed description of what the package does. A length
+  of about one to five lines is recommended.
 }
 \details{
-  These two functions are studied in nonparamatric statistics
+  This section should provide a more detailed overview of how to use the
+  package, including the most important functions.
 }
 \author{
-SC19043<1144573191@qq.com>
+Your Name, email optional.
 
-
+Maintainer: Your Name <your@email.com>
+}
+\references{
+  This optional section can contain literature or other references for
+  background information.
+}
 \keyword{ package }
 \seealso{
   Optional links to other man pages
